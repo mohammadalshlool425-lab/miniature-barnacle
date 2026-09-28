@@ -130,6 +130,7 @@
     .order-card + .order-card { margin-top: 8px; }
     .order-head { display: flex; justify-content: space-between; gap: 8px; }
     .order-status { color: #16804f; font-size: 12px; font-weight: 700; }
+    .order-status-select { width: 100%; margin-top: 9px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: var(--card); color: var(--ink); }
     .order-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
     .order-progress span { height: 5px; border-radius: 99px; background: var(--line); }
     .order-progress span.active { background: var(--primary); }
@@ -532,7 +533,7 @@
               <div class="modal-backdrop" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
                 <div class="modal">
                   <div class="modal-head"><h2 id="adminTitle">لوحة الإدارة</h2><button class="close-modal" data-close="adminModal">×</button></div>
-                  <div class="modal-body"><div class="notice">راجع البلاغات وأخفِ الإعلانات المخالفة قبل اعتمادها أو إعادتها.</div><div id="adminReports" class="my-listings"><p class="helper">جارٍ تحميل البلاغات...</p></div></div>
+                  <div class="modal-body"><div class="notice">راجع البلاغات وأخفِ الإعلانات المخالفة، وتابع الطلبات وحدّث حالتها من مكان واحد.</div><h3 class="account-section-title">الطلبات</h3><div id="adminOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div><h3 class="account-section-title">البلاغات</h3><div id="adminReports" class="my-listings"><p class="helper">جارٍ تحميل البلاغات...</p></div></div>
                 </div>
               </div>
             </div>
@@ -899,9 +900,23 @@
       container.innerHTML = result.length ? result.map(order => `<div class="order-card">
         <div class="order-head"><strong>طلب SH-${String(order.id).padStart(6, '0')}</strong><span class="order-status">${order.status === 'pending' ? 'تم الطلب' : escapeHtml(order.status)}</span></div>
         <small>${new Date(order.created_at).toLocaleDateString('ar-JO')} · ${Number(order.total).toLocaleString('ar-JO')} د.أ</small>
-        <div class="order-progress" aria-label="حالة الطلب"><span class="active"></span><span></span><span></span><span></span></div>
+        <div class="order-progress" aria-label="حالة الطلب">${[0,1,2,3].map(index => `<span class="${index <= ({pending:0,processing:1,shipped:2,delivered:3}[order.status] ?? 0) ? 'active' : ''}"></span>`).join('')}</div>
         <small>تم الطلب · قيد التجهيز · في الطريق · تم التسليم</small>
       </div>`).join('') : '<p class="helper">لا توجد طلبات مرتبطة بحسابك بعد.</p>';
+    }
+    const orderStatusLabels = { pending: 'تم الطلب', processing: 'قيد التجهيز', shipped: 'في الطريق', delivered: 'تم التسليم', cancelled: 'ملغى' };
+    async function loadAdminOrders() {
+      const container = document.getElementById('adminOrders');
+      const response = await fetch(`${localApi}/admin/orders`);
+      const result = await response.json();
+      if (!response.ok) { container.innerHTML = `<p class="helper">${escapeHtml(result.error || 'تعذر تحميل الطلبات')}</p>`; return; }
+      container.innerHTML = result.length ? result.map(order => `<div class="order-card admin-order" data-order-id="${order.id}">
+        <div class="order-head"><strong>SH-${String(order.id).padStart(6, '0')} · ${escapeHtml(order.customer_name)}</strong><span class="order-status">${escapeHtml(orderStatusLabels[order.status] || order.status)}</span></div>
+        <small>${escapeHtml(order.phone)} · ${escapeHtml(order.address)} · ${Number(order.total).toLocaleString('ar-JO')} د.أ</small>
+        <select class="order-status-select" aria-label="تحديث حالة الطلب">
+          ${Object.entries(orderStatusLabels).map(([value,label]) => `<option value="${value}" ${value === order.status ? 'selected' : ''}>${label}</option>`).join('')}
+        </select>
+      </div>`).join('') : '<p class="helper">لا توجد طلبات حتى الآن.</p>';
     }
 
     function showFirebaseSetupMessage() {
@@ -1269,9 +1284,17 @@
     document.getElementById('accountModal').addEventListener('click', async event => {
       if (event.target.id !== 'adminBtn') return;
       openModal('adminModal');
+      loadAdminOrders();
       const response = await fetch(`${localApi}/admin/reports`);
       const reports = response.ok ? await response.json() : [];
       document.getElementById('adminReports').innerHTML = reports.length ? reports.map(report => `<div class="my-listing" data-listing-id="${report.listing_id}"><div class="my-listing-info"><strong>${escapeHtml(report.title)}</strong><small>${escapeHtml(report.reason)} · ${escapeHtml(report.reporter_email)}</small></div><div class="listing-actions"><button class="mini-btn hide-listing">إخفاء</button><button class="mini-btn keep-listing">إبقاء</button></div></div>`).join('') : '<p class="helper">لا توجد بلاغات معلقة.</p>';
+    });
+    document.getElementById('adminOrders').addEventListener('change', async event => {
+      if (!event.target.classList.contains('order-status-select')) return;
+      const row = event.target.closest('.admin-order');
+      const response = await fetch(`${localApi}/admin/orders`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: row.dataset.orderId, status: event.target.value }) });
+      if (!response.ok) { alert('تعذر تحديث حالة الطلب'); return; }
+      event.target.closest('.order-card').querySelector('.order-status').textContent = orderStatusLabels[event.target.value];
     });
     document.getElementById('adminReports').addEventListener('click', async event => {
       const row = event.target.closest('.my-listing');

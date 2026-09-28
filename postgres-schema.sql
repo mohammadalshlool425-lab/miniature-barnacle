@@ -32,3 +32,17 @@ CREATE TABLE IF NOT EXISTS reviews (
   rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5), body TEXT NOT NULL CHECK (length(body) BETWEEN 3 AND 500),
   created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE(listing_id, reviewer_id)
 );
+CREATE TABLE IF NOT EXISTS orders (
+  id BIGSERIAL PRIMARY KEY, user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+  customer_name TEXT NOT NULL, phone TEXT NOT NULL, address TEXT NOT NULL,
+  subtotal NUMERIC(12,2) NOT NULL CHECK (subtotal >= 0),
+  shipping NUMERIC(12,2) NOT NULL CHECK (shipping >= 0),
+  total NUMERIC(12,2) NOT NULL CHECK (total >= 0),
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS order_items (
+  id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  listing_id BIGINT, title TEXT NOT NULL, price NUMERIC(12,2) NOT NULL,
+  quantity INTEGER NOT NULL CHECK (quantity > 0)
+);
