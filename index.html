@@ -111,6 +111,20 @@
     .products.list-view .card { display: grid; grid-template-columns: 150px 1fr; margin-bottom: 10px; }
     .products.list-view .card-img { height: 150px; }
     .products.list-view .card-body { display: flex; flex-direction: column; justify-content: center; }
+    .card-img::after { content: ''; position: absolute; inset: auto 0 0; height: 34%; background: linear-gradient(transparent, rgba(12, 22, 40, .16)); pointer-events: none; }
+    .card-img img { transition: transform .35s ease; }
+    .card:hover .card-img img { transform: scale(1.04); }
+    .cart-row { display: grid; grid-template-columns: 58px 1fr auto; gap: 10px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .cart-row img, .cart-thumb { width: 58px; height: 58px; border-radius: 9px; object-fit: cover; display: grid; place-items: center; background: var(--mint); font-size: 24px; }
+    .cart-row h3 { margin: 0 0 4px; font-size: 13px; }
+    .cart-row small { color: var(--muted); }
+    .cart-quantity { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    .cart-quantity button { width: 24px; height: 24px; border: 1px solid var(--line); border-radius: 6px; background: var(--card); color: var(--ink); }
+    .cart-remove { border: 0; background: transparent; color: #b42318; font-size: 11px; }
+    .cart-summary { margin-top: 16px; padding: 14px; border-radius: 11px; background: var(--mint); }
+    .cart-summary div { display: flex; justify-content: space-between; gap: 12px; margin: 5px 0; }
+    .cart-summary strong { font-size: 17px; }
+    .cart-empty { padding: 24px 8px; text-align: center; color: var(--muted); }
     .nav-actions { display: flex; gap: 10px; align-items: center; }
     .icon-btn {
       width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 11px;
@@ -126,6 +140,8 @@
       background: var(--primary); padding: 11px 18px;
     }
     .sell-btn:hover, .primary-btn:hover { background: var(--primary-dark); }
+    .primary-btn { box-shadow: 0 7px 16px rgba(37, 99, 235, .16); transition: transform .2s, box-shadow .2s, background .2s; }
+    .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(37, 99, 235, .24); }
 
     .hero { padding: 28px 0 20px; }
     .hero-box {
@@ -183,7 +199,7 @@
     .sort { border: 1px solid var(--line); border-radius: 8px; color: var(--muted); padding: 7px 10px; background: white; }
     .products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     .card { background: white; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transition: .2s; }
-    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(30, 64, 175, .12); border-color: #c9d7f3; }
     .card-img { height: 165px; display: grid; place-items: center; position: relative; background: #f2f5fb; font-size: 76px; }
     .card-img img { width: 100%; height: 100%; object-fit: cover; }
     body.dark {
@@ -348,7 +364,7 @@
       </div>
       <div class="nav-actions">
         <button class="icon-btn" aria-label="المفضلة">♡</button>
-        <button class="icon-btn" aria-label="السلة">🛒<span class="badge" id="cartCount">0</span></button>
+        <button class="icon-btn" id="cartBtn" aria-label="السلة">🛒<span class="badge" id="cartCount">0</span></button>
         <button class="theme-btn" id="themeBtn" aria-label="تبديل الوضع الليلي">☾</button>
         <button class="login-btn" id="loginBtn">تسجيل الدخول</button>
         <button class="sell-btn">＋ أضف إعلانًا</button>
@@ -441,6 +457,23 @@
           <button class="outline-btn form-submit" type="button" id="signupBtn">إنشاء حساب جديد</button>
           <p class="helper" id="authMessage">استخدم بريدًا إلكترونيًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.</p>
         </form>
+      </div>
+      <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+        <div class="modal">
+          <div class="modal-head"><h2 id="cartTitle">سلة التسوق</h2><button class="close-modal" data-close="cartModal">×</button></div>
+          <div class="modal-body">
+            <div id="cartItems"></div>
+            <div class="cart-summary" id="cartSummary"></div>
+            <form id="checkoutForm" style="display:none">
+              <div class="form-field"><label for="checkoutName">الاسم الكامل</label><input id="checkoutName" required maxlength="80" placeholder="اكتب اسمك" /></div>
+              <div class="form-field" style="margin-top:12px"><label for="checkoutPhone">رقم الهاتف</label><input id="checkoutPhone" required maxlength="20" inputmode="tel" placeholder="07xxxxxxxx" /></div>
+              <div class="form-field" style="margin-top:12px"><label for="checkoutAddress">عنوان التوصيل</label><textarea id="checkoutAddress" required maxlength="300" placeholder="المحافظة، المنطقة، وأقرب معلم"></textarea></div>
+              <button class="primary-btn form-submit">تأكيد الطلب</button>
+            </form>
+            <button class="primary-btn form-submit" id="checkoutBtn" type="button">إتمام الشراء</button>
+            <p class="helper" id="checkoutMessage">الدفع عند الاستلام متاح حاليًا.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -565,6 +598,46 @@
       card.innerHTML = `<div class="card-img">${image}<button class="heart" aria-label="أضف للمفضلة">♡</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
       grid.prepend(card);
     }
+
+    let cartItems = [];
+    try { cartItems = JSON.parse(localStorage.getItem('shamaa-cart') || '[]'); } catch (error) { console.warn('تعذر قراءة السلة:', error.message); }
+    function saveCart() {
+      localStorage.setItem('shamaa-cart', JSON.stringify(cartItems));
+      cartCount.textContent = cartItems.reduce((total, item) => total + item.quantity, 0);
+    }
+    function cartProductFromCard(card) {
+      let images = [];
+      try { images = JSON.parse(card.dataset.images || '[]'); } catch {}
+      return { id: card.dataset.id, title: card.dataset.name, price: Number(card.dataset.price), city: card.dataset.location, emoji: card.dataset.emoji, image: images[0] || '' };
+    }
+    function addToCart(product) {
+      if (!product.id) return;
+      const existing = cartItems.find(item => item.id === product.id);
+      if (existing) existing.quantity += 1;
+      else cartItems.push({ ...product, quantity: 1 });
+      saveCart();
+      renderCart();
+    }
+    function renderCart() {
+      const container = document.getElementById('cartItems');
+      const summary = document.getElementById('cartSummary');
+      const total = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      if (!cartItems.length) {
+        container.innerHTML = '<div class="cart-empty">السلة فارغة حاليًا.<br>أضف منتجًا يعجبك لتجده هنا.</div>';
+        summary.innerHTML = '';
+        document.getElementById('checkoutBtn').style.display = 'none';
+        document.getElementById('checkoutForm').style.display = 'none';
+        return;
+      }
+      container.innerHTML = cartItems.map(item => `<div class="cart-row" data-cart-id="${escapeHtml(item.id)}">
+        ${item.image ? `<img src="${escapeHtml(item.image)}" alt="${escapeHtml(item.title)}">` : `<div class="cart-thumb">${escapeHtml(item.emoji)}</div>`}
+        <div><h3>${escapeHtml(item.title)}</h3><small>${item.price.toLocaleString('ar-JO')} د.أ · ${escapeHtml(item.city)}</small><div class="cart-quantity"><button type="button" data-cart-action="decrease">−</button><span>${item.quantity}</span><button type="button" data-cart-action="increase">＋</button></div></div>
+        <button class="cart-remove" type="button" data-cart-action="remove">حذف</button>
+      </div>`).join('');
+      summary.innerHTML = `<div><span>المجموع الفرعي</span><b>${total.toLocaleString('ar-JO')} د.أ</b></div><div><span>الشحن</span><b>${total >= 25 ? 'مجاني' : '2 د.أ'}</b></div><div><strong>الإجمالي</strong><strong>${(total >= 25 ? total : total + 2).toLocaleString('ar-JO')} د.أ</strong></div>`;
+      document.getElementById('checkoutBtn').style.display = '';
+    }
+    saveCart();
 
     function getRecentSearches() {
       try {
@@ -1056,8 +1129,41 @@
     grid.addEventListener('click', event => {
       const heart = event.target.closest('.heart');
       if (heart) { heart.classList.toggle('active'); heart.textContent = heart.classList.contains('active') ? '♥' : '♡'; }
-      if (event.target.closest('.add-cart')) { cart++; cartCount.textContent = cart; event.target.closest('.add-cart').textContent = '✓'; }
+      if (event.target.closest('.add-cart')) {
+        const button = event.target.closest('.add-cart');
+        addToCart(cartProductFromCard(event.target.closest('.card')));
+        button.textContent = '✓';
+        setTimeout(() => { button.textContent = '＋'; }, 900);
+      }
       if (event.target.closest('.card-title')) showDetails(event.target.closest('.card'));
+    });
+    document.getElementById('cartBtn').addEventListener('click', () => { renderCart(); openModal('cartModal'); });
+    document.getElementById('cartItems').addEventListener('click', event => {
+      const row = event.target.closest('.cart-row');
+      const action = event.target.closest('[data-cart-action]')?.dataset.cartAction;
+      if (!row || !action) return;
+      const item = cartItems.find(product => product.id === row.dataset.cartId);
+      if (!item) return;
+      if (action === 'increase') item.quantity += 1;
+      if (action === 'decrease') item.quantity -= 1;
+      if (action === 'remove' || item.quantity < 1) cartItems = cartItems.filter(product => product.id !== item.id);
+      saveCart();
+      renderCart();
+    });
+    document.getElementById('checkoutBtn').addEventListener('click', () => {
+      document.getElementById('checkoutForm').style.display = '';
+      document.getElementById('checkoutBtn').style.display = 'none';
+      document.getElementById('checkoutName').focus();
+    });
+    document.getElementById('checkoutForm').addEventListener('submit', event => {
+      event.preventDefault();
+      const orderNumber = `SH-${Date.now().toString().slice(-6)}`;
+      cartItems = [];
+      saveCart();
+      renderCart();
+      document.getElementById('checkoutForm').reset();
+      document.getElementById('checkoutMessage').textContent = `تم استلام طلبك بنجاح. رقم الطلب ${orderNumber}. سنتواصل معك لتأكيد التوصيل.`;
+      document.getElementById('checkoutMessage').style.color = '#16804f';
     });
     document.getElementById('messageSeller').addEventListener('click', async () => {
       if (!localUser && !firebaseAuth) {
@@ -1110,7 +1216,10 @@
       alert('تم إرسال تقييمك بنجاح.');
     });
     document.getElementById('detailCart').addEventListener('click', event => {
-      cart++; cartCount.textContent = cart; event.target.textContent = 'تمت الإضافة ✓';
+      const card = [...grid.querySelectorAll('.card')].find(item => item.dataset.id === document.getElementById('detailModal').dataset.listingId);
+      if (card) addToCart(cartProductFromCard(card));
+      event.target.textContent = 'تمت الإضافة ✓';
+      setTimeout(() => { event.target.textContent = 'أضف للسلة'; }, 900);
     });
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await fetch(`${localApi}/auth/logout`, { method: 'POST' });
