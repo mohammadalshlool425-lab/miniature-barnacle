@@ -165,6 +165,10 @@
     .card { background: white; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; transition: .2s; }
     .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .card-img { height: 165px; display: grid; place-items: center; position: relative; background: #f2f5fb; font-size: 76px; }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; }
+    .image-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+    .image-preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
+    .image-help { color: var(--muted); font-size: 11px; }
     .card:nth-child(2) .card-img { background: #fff2e8; }
     .card:nth-child(3) .card-img { background: #edf8f1; }
     .card:nth-child(4) .card-img { background: #f4efff; }
@@ -374,6 +378,7 @@
             <div class="form-field"><label for="listingPrice">السعر (د.أ)</label><input id="listingPrice" type="number" min="0" required placeholder="0" /></div>
             <div class="form-field"><label for="listingCity">المحافظة</label><select id="listingCity"><option>عمّان</option><option>إربد</option><option>الزرقاء</option><option>العقبة</option><option>البلقاء</option><option>الكرك</option><option>المفرق</option><option>جرش</option><option>عجلون</option><option>مادبا</option><option>الطفيلة</option><option>معان</option></select></div>
             <div class="form-field full"><label for="listingDescription">وصف الإعلان</label><textarea id="listingDescription" required placeholder="اكتب تفاصيل المنتج، حالته، وطريقة التسليم..."></textarea></div>
+            <div class="form-field full"><label for="listingImages">صور الإعلان</label><input id="listingImages" type="file" accept="image/jpeg,image/png,image/webp" multiple /><span class="image-help">أضف حتى 5 صور. ستُضغط الصور تلقائيًا قبل الحفظ.</span><div id="imagePreview" class="image-preview"></div></div>
           </div>
           <button class="primary-btn form-submit">نشر الإعلان</button>
           <p class="helper">سيظهر إعلانك في قائمة المنتجات مباشرة في هذا النموذج التجريبي.</p>
@@ -457,11 +462,52 @@
       card.dataset.name = listing.title;
       card.dataset.price = listing.price;
       card.dataset.emoji = listing.emoji || '📦';
+      card.dataset.images = JSON.stringify(Array.isArray(listing.images) ? listing.images : []);
       card.dataset.location = listing.city;
       card.dataset.category = listing.category || 'أخرى';
-      card.innerHTML = `<div class="card-img">${escapeHtml(card.dataset.emoji)}<button class="heart" aria-label="أضف للمفضلة">♡</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
+      const image = Array.isArray(listing.images) && listing.images[0] ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" loading="lazy">` : escapeHtml(card.dataset.emoji);
+      card.innerHTML = `<div class="card-img">${image}<button class="heart" aria-label="أضف للمفضلة">♡</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
       grid.prepend(card);
     }
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const image = new Image();
+          image.onload = () => {
+            const scale = Math.min(1, 1200 / Math.max(image.width, image.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, Math.round(image.width * scale));
+            canvas.height = Math.max(1, Math.round(image.height * scale));
+            canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.78));
+          };
+          image.onerror = () => reject(new Error('تعذر قراءة إحدى الصور'));
+          image.src = reader.result;
+        };
+        reader.onerror = () => reject(new Error('تعذر قراءة الصور'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    let selectedImages = [];
+    document.getElementById('listingImages').addEventListener('change', async event => {
+      const files = [...event.target.files];
+      if (files.length > 5) {
+        event.target.value = '';
+        alert('يمكن إضافة 5 صور كحد أقصى.');
+        return;
+      }
+      try {
+        selectedImages = await Promise.all(files.map(compressImage));
+        document.getElementById('imagePreview').innerHTML = selectedImages.map(src => `<img src="${src}" alt="معاينة الصورة">`).join('');
+      } catch (error) {
+        selectedImages = [];
+        event.target.value = '';
+        alert(error.message);
+      }
+    });
 
     async function loadListings() {
       if (!firestore || firebaseReady) {
@@ -494,6 +540,13 @@
           resolve(user);
         });
       });
+    }
+
+    if (firebaseAuth) {
+      firebaseAuth.getRedirectResult().then(result => {
+        if (result.user) return syncFirebaseSession(result.user);
+        return null;
+      }).catch(error => console.error('تعذر إكمال تسجيل Google:', error.message));
     }
 
     async function signInWithFirebase(email, password) {
@@ -777,7 +830,8 @@
             condition: document.getElementById('listingCondition').value,
             price,
             city,
-            description: document.getElementById('listingDescription').value.trim()
+            description: document.getElementById('listingDescription').value.trim(),
+            images: selectedImages
           });
           addListingCard(saved);
         } catch (error) {
@@ -786,6 +840,8 @@
         }
       }
       document.getElementById('listingForm').reset();
+      selectedImages = [];
+      document.getElementById('imagePreview').innerHTML = '';
       closeModal('listingModal');
       filterProducts();
       document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
@@ -794,7 +850,9 @@
       document.getElementById('detailTitle').textContent = card.dataset.name;
       document.getElementById('detailPrice').textContent = `${Number(card.dataset.price).toLocaleString('ar-JO')} د.أ`;
       document.getElementById('detailLocation').textContent = `📍 ${card.dataset.location}`;
-      document.getElementById('detailEmoji').textContent = card.dataset.emoji;
+      let images = [];
+      try { images = JSON.parse(card.dataset.images || '[]'); } catch {}
+      document.getElementById('detailEmoji').innerHTML = images[0] ? `<img src="${escapeHtml(images[0])}" alt="${escapeHtml(card.dataset.name)}">` : escapeHtml(card.dataset.emoji);
       document.getElementById('detailModal').dataset.listingId = card.dataset.id || '';
       document.getElementById('chatBox').classList.remove('open');
       document.getElementById('reviewBox').style.display = 'none';
