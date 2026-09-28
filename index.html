@@ -166,6 +166,24 @@
     .card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
     .card-img { height: 165px; display: grid; place-items: center; position: relative; background: #f2f5fb; font-size: 76px; }
     .card-img img { width: 100%; height: 100%; object-fit: cover; }
+    body.dark {
+      --ink: #eef2f7; --muted: #aab5c5; --line: #2b3545; --bg: #202733; --card: #273140;
+      --mint: #203d35; --shadow: 0 12px 30px rgba(0, 0, 0, .22);
+    }
+    body.dark .topbar { background: #161c25; }
+    body.dark .search, body.dark .sort, body.dark .icon-btn, body.dark .filters,
+    body.dark .card, body.dark .time, body.dark .category { background: var(--card); color: var(--ink); }
+    body.dark .search input, body.dark .search select { color: var(--ink); }
+    body.dark .hero-box { background: linear-gradient(110deg, #263650, #332d4a 58%, #4a382b); }
+    body.dark .card-img { background: #303b4d; }
+    .theme-btn { width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 11px; background: var(--card); color: var(--ink); }
+    .smart-greeting { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+    .popular-searches { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
+    .popular-searches button { border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); padding: 6px 12px; white-space: nowrap; }
+    .popular-searches button:hover, .popular-searches button:focus-visible { color: var(--primary); border-color: var(--primary); }
+    .bottom-nav { display: none; }
+    :focus-visible { outline: 3px solid rgba(37, 99, 235, .42); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
     .image-preview { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
     .image-preview img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); }
     .image-help { color: var(--muted); font-size: 11px; }
@@ -273,6 +291,22 @@
       .card-title { font-size: 12px; }
       .price { font-size: 14px; }
       footer .footer-inner { display: block; }
+      body { padding-bottom: 72px; }
+      .topbar { display: none; }
+      .nav { min-height: 64px; gap: 10px; }
+      .logo { font-size: 20px; }
+      .logo-mark { width: 32px; height: 32px; }
+      .nav-actions .icon-btn, .nav-actions .sell-btn { display: none; }
+      .nav-actions { margin-inline-start: auto; }
+      .nav-actions .theme-btn, .nav-actions .login-btn { display: block; }
+      .search select { display: none; }
+      .hero { padding-top: 16px; }
+      .hero-box { padding: 24px; min-height: 220px; }
+      .hero-art { display: none; }
+      .bottom-nav { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; bottom: 0; inset-inline: 0; z-index: 20; background: var(--card); border-top: 1px solid var(--line); padding: 8px 10px calc(8px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 20px rgba(23,32,51,.08); }
+      .bottom-nav button { border: 0; background: transparent; color: var(--muted); font-size: 11px; display: grid; gap: 2px; justify-items: center; }
+      .bottom-nav button span:first-child { font-size: 20px; }
+      .bottom-nav button.active { color: var(--primary); font-weight: 700; }
     }
   </style>
 </head>
@@ -294,6 +328,7 @@
       <div class="nav-actions">
         <button class="icon-btn" aria-label="المفضلة">♡</button>
         <button class="icon-btn" aria-label="السلة">🛒<span class="badge" id="cartCount">0</span></button>
+        <button class="theme-btn" id="themeBtn" aria-label="تبديل الوضع الليلي">☾</button>
         <button class="login-btn" id="loginBtn">تسجيل الدخول</button>
         <button class="sell-btn">＋ أضف إعلانًا</button>
       </div>
@@ -304,6 +339,7 @@
     <section class="hero">
       <div class="hero-box">
         <div class="hero-copy">
+          <div class="smart-greeting" id="smartGreeting">مرحبًا بك في شمعة</div>
           <div class="eyebrow">منصة واحدة لكل احتياجاتك</div>
           <h1>اشترِ بذكاء، وبِع بسهولة</h1>
           <p>اكتشف آلاف المنتجات والإعلانات من البائعين الموثوقين حولك، أو ابدأ البيع خلال دقائق.</p>
@@ -312,6 +348,13 @@
         <div class="hero-art" aria-hidden="true">
           <div class="blob"></div><span class="product-emoji one">📱</span><span class="product-emoji two">👟</span><span class="product-emoji three">🎧</span>
         </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="section-head"><h2>اكتشف بهدوء</h2><span class="helper">اقتراحات شائعة الآن</span></div>
+      <div class="popular-searches" id="popularSearches">
+        <button type="button" data-query="هواتف">هواتف</button><button type="button" data-query="أثاث منزلي">أثاث منزلي</button><button type="button" data-query="سيارات">سيارات</button><button type="button" data-query="أزياء">أزياء</button><button type="button" data-query="أجهزة لابتوب">أجهزة لابتوب</button>
       </div>
     </section>
 
@@ -350,6 +393,13 @@
       </div>
     </section>
   </main>
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <button class="active" type="button" data-nav="home"><span>⌂</span><span>الرئيسية</span></button>
+    <button type="button" data-nav="search"><span>⌕</span><span>البحث</span></button>
+    <button type="button" data-nav="sell"><span>＋</span><span>نشر</span></button>
+    <button type="button" data-nav="notifications"><span>♡</span><span>المفضلة</span></button>
+    <button type="button" data-nav="account"><span>◯</span><span>حسابي</span></button>
+  </nav>
   <div class="modal-backdrop" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
     <div class="modal">
       <div class="modal-head"><h2 id="authTitle">تسجيل الدخول</h2><button class="close-modal" data-close="authModal">×</button></div>
@@ -449,6 +499,20 @@
     const cartCount = document.getElementById('cartCount');
     let cart = 0;
     let localUser = null;
+
+    function applyTheme(theme) {
+      document.body.classList.toggle('dark', theme === 'dark');
+      document.getElementById('themeBtn').textContent = theme === 'dark' ? '☀' : '☾';
+      document.getElementById('themeBtn').setAttribute('aria-label', theme === 'dark' ? 'تفعيل الوضع الفاتح' : 'تفعيل الوضع الليلي');
+    }
+    applyTheme(localStorage.getItem('shamaa-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const theme = document.body.classList.contains('dark') ? 'light' : 'dark';
+      localStorage.setItem('shamaa-theme', theme);
+      applyTheme(theme);
+    });
+    const hour = new Date().getHours();
+    document.getElementById('smartGreeting').textContent = hour < 12 ? 'صباح الخير، ابدأ يومك باكتشاف جديد' : hour < 18 ? 'أهلًا بك، ماذا تريد أن تجد اليوم؟' : 'مساء هادئ؟ اكتشف شيئًا يناسبك';
 
     function escapeHtml(value) {
       return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[character]));
@@ -688,6 +752,11 @@
     }
     searchInput.addEventListener('input', filterProducts);
     document.getElementById('searchBtn').addEventListener('click', filterProducts);
+    document.querySelectorAll('#popularSearches button').forEach(button => button.addEventListener('click', () => {
+      searchInput.value = button.dataset.query;
+      filterProducts();
+      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }));
     document.querySelector('.search select').addEventListener('change', filterProducts);
     document.getElementById('minPrice').addEventListener('input', filterProducts);
     document.getElementById('maxPrice').addEventListener('input', filterProducts);
@@ -968,6 +1037,14 @@
         await loadMyListings();
       }
     });
+    document.querySelectorAll('.bottom-nav button').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.bottom-nav button').forEach(item => item.classList.toggle('active', item === button));
+      const action = button.dataset.nav;
+      if (action === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (action === 'search') { searchInput.focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+      if (action === 'sell') document.querySelector('.sell-btn').click();
+      if (action === 'account') document.getElementById('loginBtn').click();
+    }));
     loadLocalUser();
     loadListings();
   </script>
