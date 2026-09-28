@@ -631,11 +631,24 @@
     }));
     document.getElementById('authForm').addEventListener('submit', async event => {
       event.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const message = document.getElementById('authMessage');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        message.textContent = 'أدخل بريدًا إلكترونيًا صحيحًا مثل name@example.com.';
+        message.style.color = '#b42318';
+        return;
+      }
+      if (password.length < 8) {
+        message.textContent = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.';
+        message.style.color = '#b42318';
+        return;
+      }
       try {
         if (firebaseAuth) {
-          await signInWithFirebase(document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
+          await signInWithFirebase(email, password);
         } else {
-          await localAuthRequest('login', document.getElementById('authEmail').value.trim(), document.getElementById('authPassword').value);
+          await localAuthRequest('login', email, password);
         }
       } catch (error) {
         document.getElementById('authMessage').textContent = `تعذر تسجيل الدخول: ${error.message}`;
@@ -650,6 +663,16 @@
       const email = document.getElementById('authEmail').value.trim();
       const password = document.getElementById('authPassword').value;
       const message = document.getElementById('authMessage');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        message.textContent = 'أدخل بريدًا إلكترونيًا صحيحًا مثل name@example.com.';
+        message.style.color = '#b42318';
+        return;
+      }
+      if (password.length < 8) {
+        message.textContent = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل.';
+        message.style.color = '#b42318';
+        return;
+      }
       try {
         if (firebaseAuth) await firebaseAuth.createUserWithEmailAndPassword(email, password);
         else await localAuthRequest('register', email, password);
