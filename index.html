@@ -352,11 +352,11 @@
       <div class="modal-body">
         <div class="notice">سجّل دخولك لحفظ المفضلة، متابعة إعلاناتك، والتواصل مع البائعين.</div>
         <form id="authForm">
-          <div class="form-field"><label for="authEmail">البريد الإلكتروني أو رقم الجوال</label><input id="authEmail" required placeholder="example@email.com" /></div>
-          <div class="form-field" style="margin-top:12px"><label for="authPassword">كلمة المرور</label><input id="authPassword" type="password" required minlength="8" placeholder="8 أحرف على الأقل" /></div>
+          <div class="form-field"><label for="authEmail">البريد الإلكتروني</label><input id="authEmail" type="email" required autocomplete="email" placeholder="example@email.com" /></div>
+          <div class="form-field" style="margin-top:12px"><label for="authPassword">كلمة المرور (8 أحرف على الأقل)</label><input id="authPassword" type="password" required minlength="8" maxlength="128" autocomplete="current-password" placeholder="اكتب 8 أحرف أو أكثر" /></div>
           <button class="primary-btn form-submit">تسجيل الدخول</button>
           <button class="outline-btn form-submit" type="button" id="signupBtn">إنشاء حساب جديد</button>
-          <p class="helper" id="authMessage">ليس لديك حساب؟ سيتم إنشاء حساب تجريبي عند المتابعة.</p>
+          <p class="helper" id="authMessage">استخدم بريدًا إلكترونيًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.</p>
         </form>
       </div>
     </div>
