@@ -91,6 +91,26 @@
     .search button {
       width: 48px; border: 0; color: white; background: var(--primary); font-size: 18px;
     }
+    .nav { position: relative; }
+    .search-suggestions { position: absolute; top: calc(100% + 8px); inset-inline: 0; z-index: 15; display: none; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: var(--shadow); }
+    .search-suggestions.open { display: block; }
+    .suggestion-group { display: grid; gap: 4px; }
+    .suggestion-group strong { color: var(--muted); font-size: 11px; padding: 2px 6px; }
+    .suggestion { border: 0; border-radius: 8px; padding: 8px; background: transparent; color: var(--ink); text-align: start; }
+    .suggestion:hover, .suggestion:focus-visible { background: var(--mint); color: var(--primary); }
+    .recent-searches { display: none; align-items: center; gap: 8px; margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .recent-searches.visible { display: flex; }
+    .recent-searches-list { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+    .recent-searches button { border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; background: var(--card); color: var(--muted); white-space: nowrap; }
+    .clear-recent { border: 0; background: transparent; color: var(--primary); white-space: nowrap; }
+    .search-tools { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+    .quick-filter, .view-btn { border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; background: var(--card); color: var(--muted); white-space: nowrap; }
+    .quick-filter.active, .view-btn.active { border-color: var(--primary); background: var(--mint); color: var(--primary); font-weight: 700; }
+    .view-tools { display: flex; gap: 5px; margin-inline-start: auto; }
+    .products.list-view { display: block; }
+    .products.list-view .card { display: grid; grid-template-columns: 150px 1fr; margin-bottom: 10px; }
+    .products.list-view .card-img { height: 150px; }
+    .products.list-view .card-body { display: flex; flex-direction: column; justify-content: center; }
     .nav-actions { display: flex; gap: 10px; align-items: center; }
     .icon-btn {
       width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 11px;
@@ -324,6 +344,7 @@
         <select aria-label="القسم"><option>كل الأقسام</option><option>إلكترونيات</option><option>أزياء</option><option>منزل</option></select>
         <input id="searchInput" placeholder="ابحث عن منتج، خدمة أو إعلان..." />
         <button id="searchBtn" aria-label="بحث">⌕</button>
+        <div class="search-suggestions" id="searchSuggestions" role="listbox"></div>
       </div>
       <div class="nav-actions">
         <button class="icon-btn" aria-label="المفضلة">♡</button>
@@ -356,6 +377,7 @@
       <div class="popular-searches" id="popularSearches">
         <button type="button" data-query="هواتف">هواتف</button><button type="button" data-query="أثاث منزلي">أثاث منزلي</button><button type="button" data-query="سيارات">سيارات</button><button type="button" data-query="أزياء">أزياء</button><button type="button" data-query="أجهزة لابتوب">أجهزة لابتوب</button>
       </div>
+      <div class="recent-searches" id="recentSearches"><span>آخر بحث:</span><div class="recent-searches-list" id="recentSearchesList"></div><button class="clear-recent" id="clearRecent" type="button">مسح</button></div>
     </section>
 
     <section>
@@ -388,6 +410,12 @@
         </aside>
         <div>
           <div class="products-head"><div><h2>كل المنتجات</h2><span id="resultCount">عرض 0 نتائج</span></div><select class="sort" id="sortSelect"><option>الأكثر صلة</option><option>الأحدث</option><option>الأقل سعرًا</option></select></div>
+          <div class="search-tools" aria-label="فلاتر سريعة">
+            <button class="quick-filter" type="button" data-filter="cheap">الأرخص</button>
+            <button class="quick-filter" type="button" data-filter="near">الأقرب</button>
+            <button class="quick-filter" type="button" data-filter="free-shipping">شحن مجاني</button>
+            <div class="view-tools" aria-label="طريقة العرض"><button class="view-btn active" type="button" data-view="grid" aria-label="عرض شبكي">▦</button><button class="view-btn" type="button" data-view="list" aria-label="عرض قائمة">☷</button></div>
+          </div>
           <div class="products" id="productGrid"></div>
         </div>
       </div>
@@ -497,6 +525,10 @@
     const count = document.getElementById('resultCount');
     const searchInput = document.getElementById('searchInput');
     const cartCount = document.getElementById('cartCount');
+    const suggestions = document.getElementById('searchSuggestions');
+    const recentSearches = document.getElementById('recentSearches');
+    const recentSearchesList = document.getElementById('recentSearchesList');
+    const recentSearchKey = 'shamaa-recent-searches';
     let cart = 0;
     let localUser = null;
 
@@ -532,6 +564,55 @@
       const image = Array.isArray(listing.images) && listing.images[0] ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" loading="lazy">` : escapeHtml(card.dataset.emoji);
       card.innerHTML = `<div class="card-img">${image}<button class="heart" aria-label="أضف للمفضلة">♡</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
       grid.prepend(card);
+    }
+
+    function getRecentSearches() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(recentSearchKey) || '[]');
+        return Array.isArray(saved) ? saved.filter(item => typeof item === 'string').slice(0, 6) : [];
+      } catch (error) {
+        console.warn('تعذر قراءة سجل البحث:', error.message);
+        return [];
+      }
+    }
+
+    function renderRecentSearches() {
+      const items = getRecentSearches();
+      recentSearches.classList.toggle('visible', items.length > 0);
+      recentSearchesList.innerHTML = items.map(item => `<button type="button" data-query="${escapeHtml(item)}">${escapeHtml(item)}</button>`).join('');
+      recentSearchesList.querySelectorAll('button').forEach(button => button.addEventListener('click', () => {
+        searchInput.value = button.dataset.query;
+        submitSearch();
+      }));
+    }
+
+    function rememberSearch(value) {
+      const query = value.trim();
+      if (!query) return;
+      const items = [query, ...getRecentSearches().filter(item => item.toLowerCase() !== query.toLowerCase())].slice(0, 6);
+      localStorage.setItem(recentSearchKey, JSON.stringify(items));
+      renderRecentSearches();
+    }
+
+    function renderSuggestions() {
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) {
+        suggestions.classList.remove('open');
+        suggestions.innerHTML = '';
+        return;
+      }
+      const matches = [...grid.querySelectorAll('.card')].filter(card => {
+        const haystack = `${card.dataset.name} ${card.dataset.category} ${card.dataset.location}`.toLowerCase();
+        return haystack.includes(query);
+      }).slice(0, 6);
+      suggestions.innerHTML = matches.length
+        ? `<div class="suggestion-group"><strong>اقتراحات من الإعلانات</strong>${matches.map(card => `<button class="suggestion" type="button" data-query="${escapeHtml(card.dataset.name)}">${escapeHtml(card.dataset.name)} <small>· ${escapeHtml(card.dataset.location)}</small></button>`).join('')}</div>`
+        : '<div class="suggestion-group"><strong>لا توجد اقتراحات مطابقة</strong></div>';
+      suggestions.classList.add('open');
+      suggestions.querySelectorAll('.suggestion').forEach(button => button.addEventListener('click', () => {
+        searchInput.value = button.dataset.query;
+        submitSearch();
+      }));
     }
 
     function compressImage(file) {
@@ -750,12 +831,28 @@
       });
       count.textContent = `عرض ${visible} نتائج`;
     }
-    searchInput.addEventListener('input', filterProducts);
-    document.getElementById('searchBtn').addEventListener('click', filterProducts);
+    function submitSearch() {
+      rememberSearch(searchInput.value);
+      filterProducts();
+      suggestions.classList.remove('open');
+      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }
+    searchInput.addEventListener('input', () => {
+      filterProducts();
+      renderSuggestions();
+    });
+    searchInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        submitSearch();
+      }
+      if (event.key === 'Escape') suggestions.classList.remove('open');
+    });
+    searchInput.addEventListener('focus', renderSuggestions);
+    document.getElementById('searchBtn').addEventListener('click', submitSearch);
     document.querySelectorAll('#popularSearches button').forEach(button => button.addEventListener('click', () => {
       searchInput.value = button.dataset.query;
-      filterProducts();
-      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+      submitSearch();
     }));
     document.querySelector('.search select').addEventListener('change', filterProducts);
     document.getElementById('minPrice').addEventListener('input', filterProducts);
@@ -767,6 +864,35 @@
       if (event.target.value === 'الأحدث') cards.reverse();
       cards.forEach(card => grid.appendChild(card));
     });
+    document.getElementById('clearRecent').addEventListener('click', () => {
+      localStorage.removeItem(recentSearchKey);
+      renderRecentSearches();
+    });
+    document.querySelectorAll('.view-btn').forEach(button => button.addEventListener('click', () => {
+      const listView = button.dataset.view === 'list';
+      grid.classList.toggle('list-view', listView);
+      document.querySelectorAll('.view-btn').forEach(item => item.classList.toggle('active', item === button));
+    }));
+    document.querySelectorAll('.quick-filter').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.quick-filter').forEach(item => item.classList.toggle('active', item === button));
+      if (button.dataset.filter === 'cheap') {
+        document.getElementById('sortSelect').value = 'الأقل سعرًا';
+        [...grid.children].sort((a, b) => +a.dataset.price - +b.dataset.price).forEach(card => grid.appendChild(card));
+      }
+      if (button.dataset.filter === 'near') {
+        const selectedCity = document.querySelector('.city-filter:checked')?.value;
+        if (selectedCity) {
+          searchInput.value = selectedCity;
+          filterProducts();
+        } else {
+          document.querySelector('.filters').scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    }));
+    document.addEventListener('click', event => {
+      if (!event.target.closest('.search')) suggestions.classList.remove('open');
+    });
+    renderRecentSearches();
     function openModal(id) { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
     document.getElementById('loginBtn').addEventListener('click', async () => {
