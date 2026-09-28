@@ -724,6 +724,10 @@
         message.style.color = '#16804f';
         setTimeout(() => closeModal('authModal'), 900);
       } catch (error) {
+        if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+          await firebaseAuth.signInWithRedirect(new firebase.auth.GoogleAuthProvider());
+          return;
+        }
         message.textContent = `تعذر تسجيل الدخول باستخدام Google: ${error.message}`;
         message.style.color = '#b42318';
       }
