@@ -125,6 +125,10 @@
     .cart-summary div { display: flex; justify-content: space-between; gap: 12px; margin: 5px 0; }
     .cart-summary strong { font-size: 17px; }
     .cart-empty { padding: 24px 8px; text-align: center; color: var(--muted); }
+    .favorite-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .favorite-row strong { display: block; font-size: 13px; }
+    .favorite-row small { color: var(--muted); }
+    .favorite-empty { padding: 24px 8px; text-align: center; color: var(--muted); }
     .account-section-title { margin: 22px 0 10px; font-size: 16px; }
     .order-card { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
     .order-card + .order-card { margin-top: 8px; }
@@ -366,13 +370,13 @@
     <div class="container nav">
       <a class="logo" href="#"><span class="logo-mark"><span>ش</span></span>شمعة</a>
       <div class="search">
-        <select aria-label="القسم"><option>كل الأقسام</option><option>إلكترونيات</option><option>أزياء</option><option>منزل</option></select>
+        <select id="categorySelect" aria-label="القسم"><option>كل الأقسام</option><option>إلكترونيات</option><option>أزياء وموضة</option><option>المنزل</option><option>سيارات</option><option>وظائف</option><option>خدمات</option><option>كتب</option><option>ألعاب</option><option>أخرى</option></select>
         <input id="searchInput" placeholder="ابحث عن منتج، خدمة أو إعلان..." />
         <button id="searchBtn" aria-label="بحث">⌕</button>
         <div class="search-suggestions" id="searchSuggestions" role="listbox"></div>
       </div>
       <div class="nav-actions">
-        <button class="icon-btn" aria-label="المفضلة">♡</button>
+        <button class="icon-btn" id="favoritesBtn" aria-label="المفضلة">♡<span class="badge" id="favoritesCount">0</span></button>
         <button class="icon-btn" id="cartBtn" aria-label="السلة">🛒<span class="badge" id="cartCount">0</span></button>
         <button class="theme-btn" id="themeBtn" aria-label="تبديل الوضع الليلي">☾</button>
         <button class="login-btn" id="loginBtn">تسجيل الدخول</button>
@@ -408,14 +412,18 @@
     <section>
       <div class="section-head"><h2>تسوق حسب القسم</h2><a href="#">عرض الكل ←</a></div>
       <div class="categories">
-        <div class="category"><span class="cat-icon">📱</span><span>إلكترونيات</span></div>
-        <div class="category"><span class="cat-icon">👗</span><span>أزياء وموضة</span></div>
-        <div class="category"><span class="cat-icon">🏠</span><span>المنزل</span></div>
-        <div class="category"><span class="cat-icon">🚗</span><span>سيارات</span></div>
-        <div class="category"><span class="cat-icon">💼</span><span>وظائف</span></div>
-        <div class="category"><span class="cat-icon">⚽</span><span>رياضة</span></div>
-        <div class="category"><span class="cat-icon">🐾</span><span>حيوانات</span></div>
-        <div class="category"><span class="cat-icon">📦</span><span>أخرى</span></div>
+        <button class="category" type="button" data-category="إلكترونيات"><span class="cat-icon">📱</span><span>إلكترونيات</span></button>
+        <button class="category" type="button" data-category="أزياء وموضة"><span class="cat-icon">👗</span><span>أزياء وموضة</span></button>
+        <button class="category" type="button" data-category="المنزل"><span class="cat-icon">🏠</span><span>المنزل</span></button>
+        <button class="category" type="button" data-category="سيارات"><span class="cat-icon">🚗</span><span>سيارات</span></button>
+        <button class="category" type="button" data-category="وظائف"><span class="cat-icon">💼</span><span>وظائف</span></button>
+        <button class="category" type="button" data-category="رياضة"><span class="cat-icon">⚽</span><span>رياضة</span></button>
+        <button class="category" type="button" data-category="حيوانات"><span class="cat-icon">🐾</span><span>حيوانات</span></button>
+        <button class="category" type="button" data-category="خدمات"><span class="cat-icon">🛠️</span><span>خدمات</span></button>
+        <button class="category" type="button" data-category="وظائف عن بعد"><span class="cat-icon">💻</span><span>وظائف عن بعد</span></button>
+        <button class="category" type="button" data-category="كتب"><span class="cat-icon">📚</span><span>كتب</span></button>
+        <button class="category" type="button" data-category="ألعاب"><span class="cat-icon">🎮</span><span>ألعاب</span></button>
+        <button class="category" type="button" data-category="أخرى"><span class="cat-icon">📦</span><span>أخرى</span></button>
       </div>
     </section>
 
@@ -450,7 +458,7 @@
     <button class="active" type="button" data-nav="home"><span>⌂</span><span>الرئيسية</span></button>
     <button type="button" data-nav="search"><span>⌕</span><span>البحث</span></button>
     <button type="button" data-nav="sell"><span>＋</span><span>نشر</span></button>
-    <button type="button" data-nav="notifications"><span>♡</span><span>المفضلة</span></button>
+    <button type="button" data-nav="favorites"><span>♡</span><span>المفضلة</span></button>
     <button type="button" data-nav="account"><span>◯</span><span>حسابي</span></button>
   </nav>
   <div class="modal-backdrop" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -467,22 +475,22 @@
           <p class="helper" id="authMessage">استخدم بريدًا إلكترونيًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.</p>
         </form>
       </div>
-      <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
-        <div class="modal">
-          <div class="modal-head"><h2 id="cartTitle">سلة التسوق</h2><button class="close-modal" data-close="cartModal">×</button></div>
-          <div class="modal-body">
-            <div id="cartItems"></div>
-            <div class="cart-summary" id="cartSummary"></div>
-            <form id="checkoutForm" style="display:none">
-              <div class="form-field"><label for="checkoutName">الاسم الكامل</label><input id="checkoutName" required maxlength="80" placeholder="اكتب اسمك" /></div>
-              <div class="form-field" style="margin-top:12px"><label for="checkoutPhone">رقم الهاتف</label><input id="checkoutPhone" required maxlength="20" inputmode="tel" placeholder="07xxxxxxxx" /></div>
-              <div class="form-field" style="margin-top:12px"><label for="checkoutAddress">عنوان التوصيل</label><textarea id="checkoutAddress" required maxlength="300" placeholder="المحافظة، المنطقة، وأقرب معلم"></textarea></div>
-              <button class="primary-btn form-submit">تأكيد الطلب</button>
-            </form>
-            <button class="primary-btn form-submit" id="checkoutBtn" type="button">إتمام الشراء</button>
-            <p class="helper" id="checkoutMessage">الدفع عند الاستلام متاح حاليًا.</p>
-          </div>
-        </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="cartModal" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="cartTitle">سلة التسوق</h2><button class="close-modal" data-close="cartModal">×</button></div>
+      <div class="modal-body">
+        <div id="cartItems"></div>
+        <div class="cart-summary" id="cartSummary"></div>
+        <form id="checkoutForm" style="display:none">
+          <div class="form-field"><label for="checkoutName">الاسم الكامل</label><input id="checkoutName" required maxlength="80" placeholder="اكتب اسمك" /></div>
+          <div class="form-field" style="margin-top:12px"><label for="checkoutPhone">رقم الهاتف</label><input id="checkoutPhone" required maxlength="20" inputmode="tel" placeholder="07xxxxxxxx" /></div>
+          <div class="form-field" style="margin-top:12px"><label for="checkoutAddress">عنوان التوصيل</label><textarea id="checkoutAddress" required maxlength="300" placeholder="المحافظة، المنطقة، وأقرب معلم"></textarea></div>
+          <button class="primary-btn form-submit">تأكيد الطلب</button>
+        </form>
+        <button class="primary-btn form-submit" id="checkoutBtn" type="button">إتمام الشراء</button>
+        <p class="helper" id="checkoutMessage">الدفع عند الاستلام متاح حاليًا.</p>
       </div>
     </div>
   </div>
@@ -493,7 +501,7 @@
         <form id="listingForm">
           <div class="form-grid">
             <div class="form-field full"><label for="listingName">عنوان الإعلان</label><input id="listingName" required maxlength="70" placeholder="مثال: جوال آيفون بحالة ممتازة" /></div>
-            <div class="form-field"><label for="listingCategory">القسم</label><select id="listingCategory"><option>إلكترونيات</option><option>أزياء وموضة</option><option>المنزل</option><option>سيارات</option><option>أخرى</option></select></div>
+            <div class="form-field"><label for="listingCategory">القسم</label><select id="listingCategory"><option>إلكترونيات</option><option>أزياء وموضة</option><option>المنزل</option><option>سيارات</option><option>وظائف</option><option>خدمات</option><option>كتب</option><option>ألعاب</option><option>أخرى</option></select></div>
             <div class="form-field"><label for="listingCondition">الحالة</label><select id="listingCondition"><option>جديد</option><option>مستعمل - ممتاز</option><option>مستعمل - جيد</option></select></div>
             <div class="form-field"><label for="listingPrice">السعر (د.أ)</label><input id="listingPrice" type="number" min="0" required placeholder="0" /></div>
             <div class="form-field"><label for="listingCity">المحافظة</label><select id="listingCity"><option>عمّان</option><option>إربد</option><option>الزرقاء</option><option>العقبة</option><option>البلقاء</option><option>الكرك</option><option>المفرق</option><option>جرش</option><option>عجلون</option><option>مادبا</option><option>الطفيلة</option><option>معان</option></select></div>
@@ -521,28 +529,34 @@
             <div class="chat-box" id="chatBox"><input id="chatInput" placeholder="اكتب رسالتك للبائع..." /><button class="primary-btn" id="sendChat">إرسال</button></div>
             <div class="review-box" id="reviewBox" style="display:none"><select id="reviewRating"><option value="5">★★★★★</option><option value="4">★★★★</option><option value="3">★★★</option><option value="2">★★</option><option value="1">★</option></select><textarea id="reviewBody" placeholder="اكتب تقييمك للبائع..."></textarea><button class="primary-btn" id="sendReview">إرسال التقييم</button></div>
           </div>
-          <div class="modal-backdrop" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
-            <div class="modal">
-              <div class="modal-head"><h2 id="accountTitle">حسابي وإعلاناتي</h2><button class="close-modal" data-close="accountModal">×</button></div>
-              <div class="modal-body">
-                <div class="account-summary"><div><strong id="accountEmail">المستخدم</strong><small>إعلاناتي المنشورة</small></div><button class="outline-btn" id="logoutBtn">تسجيل الخروج</button></div>
-                <div id="myListings" class="my-listings"><p class="helper">جارٍ تحميل إعلاناتك...</p></div>
-                <h3 class="account-section-title">طلباتي</h3>
-                <div id="myOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div>
-              </div>
-              <div class="modal-backdrop" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
-                <div class="modal">
-                  <div class="modal-head"><h2 id="adminTitle">لوحة الإدارة</h2><button class="close-modal" data-close="adminModal">×</button></div>
-                  <div class="modal-body"><div class="notice">راجع البلاغات وأخفِ الإعلانات المخالفة، وتابع الطلبات وحدّث حالتها من مكان واحد.</div><h3 class="account-section-title">الطلبات</h3><div id="adminOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div><h3 class="account-section-title">البلاغات</h3><div id="adminReports" class="my-listings"><p class="helper">جارٍ تحميل البلاغات...</p></div></div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   </div>
+  <div class="modal-backdrop" id="accountModal" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="accountTitle">حسابي وإعلاناتي</h2><button class="close-modal" data-close="accountModal">×</button></div>
+      <div class="modal-body">
+        <div class="account-summary"><div><strong id="accountEmail">المستخدم</strong><small>إعلاناتي المنشورة</small></div><button class="outline-btn" id="logoutBtn">تسجيل الخروج</button></div>
+        <div id="myListings" class="my-listings"><p class="helper">جارٍ تحميل إعلاناتك...</p></div>
+        <h3 class="account-section-title">طلباتي</h3>
+        <div id="myOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-backdrop" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="adminTitle">لوحة الإدارة</h2><button class="close-modal" data-close="adminModal">×</button></div>
+      <div class="modal-body"><div class="notice">راجع البلاغات وأخفِ الإعلانات المخالفة، وتابع الطلبات وحدّث حالتها من مكان واحد.</div><h3 class="account-section-title">الطلبات</h3><div id="adminOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div><h3 class="account-section-title">البلاغات</h3><div id="adminReports" class="my-listings"><p class="helper">جارٍ تحميل البلاغات...</p></div></div>
+    </div>
+  </div>
   <footer><div class="container footer-inner"><strong>شمعة</strong><span>منصة آمنة وسهلة للبيع والشراء للجميع</span><span>© 2025 شمعة · شروط الاستخدام · الخصوصية</span></div></footer>
+  <div class="modal-backdrop" id="favoritesModal" role="dialog" aria-modal="true" aria-labelledby="favoritesTitle">
+    <div class="modal">
+      <div class="modal-head"><h2 id="favoritesTitle">المفضلة</h2><button class="close-modal" data-close="favoritesModal">×</button></div>
+      <div class="modal-body"><div id="favoriteItems"></div></div>
+    </div>
+  </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -573,8 +587,11 @@
     const recentSearches = document.getElementById('recentSearches');
     const recentSearchesList = document.getElementById('recentSearchesList');
     const recentSearchKey = 'shamaa-recent-searches';
+    const favoritesKey = 'shamaa-favorites';
     let cart = 0;
     let localUser = null;
+    let favoriteItems = [];
+    try { favoriteItems = JSON.parse(localStorage.getItem(favoritesKey) || '[]'); } catch (error) { console.warn('تعذر قراءة المفضلة:', error.message); }
 
     function applyTheme(theme) {
       document.body.classList.toggle('dark', theme === 'dark');
@@ -606,7 +623,8 @@
       card.dataset.location = listing.city;
       card.dataset.category = listing.category || 'أخرى';
       const image = Array.isArray(listing.images) && listing.images[0] ? `<img src="${escapeHtml(listing.images[0])}" alt="${escapeHtml(listing.title)}" loading="lazy">` : escapeHtml(card.dataset.emoji);
-      card.innerHTML = `<div class="card-img">${image}<button class="heart" aria-label="أضف للمفضلة">♡</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
+      const isFavorite = favoriteItems.some(item => String(item.id) === String(card.dataset.id));
+      card.innerHTML = `<div class="card-img">${image}<button class="heart${isFavorite ? ' active' : ''}" aria-label="${isFavorite ? 'إزالة من المفضلة' : 'أضف للمفضلة'}">${isFavorite ? '♥' : '♡'}</button><span class="tag">إعلان جديد</span></div><div class="card-body"><p class="card-title">${escapeHtml(listing.title)}</p><div class="rating">☆☆☆☆☆ <span>إعلان جديد</span></div><div class="card-footer"><div><div class="price">${Number(listing.price).toLocaleString('ar-JO')} <small>د.أ</small></div><div class="location">📍 ${escapeHtml(listing.city)}</div></div><button class="add-cart" aria-label="أضف للسلة">＋</button></div></div>`;
       grid.prepend(card);
     }
 
@@ -616,6 +634,21 @@
       localStorage.setItem('shamaa-cart', JSON.stringify(cartItems));
       cartCount.textContent = cartItems.reduce((total, item) => total + item.quantity, 0);
     }
+    function saveFavorites() {
+      localStorage.setItem(favoritesKey, JSON.stringify(favoriteItems));
+      document.getElementById('favoritesCount').textContent = favoriteItems.length;
+    }
+    function favoriteFromCard(card) {
+      return { id: card.dataset.id, title: card.dataset.name, price: Number(card.dataset.price), city: card.dataset.location, emoji: card.dataset.emoji };
+    }
+    function renderFavorites() {
+      const container = document.getElementById('favoriteItems');
+      container.innerHTML = favoriteItems.length
+        ? favoriteItems.map(item => `<div class="favorite-row" data-favorite-id="${escapeHtml(item.id)}"><div><strong>${escapeHtml(item.title)}</strong><small>${item.price.toLocaleString('ar-JO')} د.أ · ${escapeHtml(item.city)}</small></div><button class="mini-btn remove-favorite" type="button">إزالة</button></div>`).join('')
+        : '<div class="favorite-empty">لم تضف أي إعلان إلى المفضلة بعد.</div>';
+    }
+    function openFavorites() { renderFavorites(); openModal('favoritesModal'); }
+    saveFavorites();
     function cartProductFromCard(card) {
       let images = [];
       try { images = JSON.parse(card.dataset.images || '[]'); } catch {}
@@ -929,7 +962,7 @@
 
     function filterProducts() {
       const term = searchInput.value.trim().toLowerCase();
-      const category = document.querySelector('.search select').value;
+      const category = document.getElementById('categorySelect').value;
       const min = Number(document.getElementById('minPrice').value || 0);
       const max = Number(document.getElementById('maxPrice').value || Number.MAX_SAFE_INTEGER);
       const cities = [...document.querySelectorAll('.city-filter:checked')].map(input => input.value);
@@ -1002,6 +1035,16 @@
         }
       }
     }));
+    document.getElementById('categorySelect').addEventListener('change', () => {
+      filterProducts();
+      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    });
+    document.querySelectorAll('.category[data-category]').forEach(button => button.addEventListener('click', () => {
+      document.getElementById('categorySelect').value = button.dataset.category;
+      searchInput.value = '';
+      filterProducts();
+      document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+    }));
     document.addEventListener('click', event => {
       if (!event.target.closest('.search')) suggestions.classList.remove('open');
     });
@@ -1016,6 +1059,14 @@
       loadMyOrders();
     });
     document.querySelector('.sell-btn').addEventListener('click', () => openModal('listingModal'));
+    document.querySelectorAll('[data-nav]').forEach(button => button.addEventListener('click', () => {
+      const action = button.dataset.nav;
+      if (action === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (action === 'search') { searchInput.focus(); searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      if (action === 'sell') openModal('listingModal');
+      if (action === 'favorites') openFavorites();
+      if (action === 'account') document.getElementById('loginBtn').click();
+    }));
     document.querySelectorAll('.close-modal').forEach(button => button.addEventListener('click', () => closeModal(button.dataset.close)));
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.addEventListener('click', event => {
       if (event.target === backdrop) closeModal(backdrop.id);
@@ -1169,7 +1220,18 @@
     }
     grid.addEventListener('click', event => {
       const heart = event.target.closest('.heart');
-      if (heart) { heart.classList.toggle('active'); heart.textContent = heart.classList.contains('active') ? '♥' : '♡'; }
+      if (heart) {
+        const card = event.target.closest('.card');
+        const product = favoriteFromCard(card);
+        const existing = favoriteItems.findIndex(item => String(item.id) === String(product.id));
+        if (existing >= 0) favoriteItems.splice(existing, 1);
+        else favoriteItems.push(product);
+        saveFavorites();
+        heart.classList.toggle('active', existing < 0);
+        heart.textContent = existing < 0 ? '♥' : '♡';
+        heart.setAttribute('aria-label', existing < 0 ? 'إزالة من المفضلة' : 'أضف للمفضلة');
+        return;
+      }
       if (event.target.closest('.add-cart')) {
         const button = event.target.closest('.add-cart');
         addToCart(cartProductFromCard(event.target.closest('.card')));
@@ -1179,6 +1241,17 @@
       if (event.target.closest('.card-title')) showDetails(event.target.closest('.card'));
     });
     document.getElementById('cartBtn').addEventListener('click', () => { renderCart(); openModal('cartModal'); });
+    document.getElementById('favoritesBtn').addEventListener('click', openFavorites);
+    document.getElementById('favoriteItems').addEventListener('click', event => {
+      const row = event.target.closest('.favorite-row');
+      if (!row || !event.target.closest('.remove-favorite')) return;
+      favoriteItems = favoriteItems.filter(item => String(item.id) !== String(row.dataset.favoriteId));
+      saveFavorites();
+      renderFavorites();
+      const card = [...grid.querySelectorAll('.card')].find(item => String(item.dataset.id) === String(row.dataset.favoriteId));
+      const heart = card?.querySelector('.heart');
+      if (heart) { heart.classList.remove('active'); heart.textContent = '♡'; heart.setAttribute('aria-label', 'أضف للمفضلة'); }
+    });
     document.getElementById('cartItems').addEventListener('click', event => {
       const row = event.target.closest('.cart-row');
       const action = event.target.closest('[data-cart-action]')?.dataset.cartAction;
