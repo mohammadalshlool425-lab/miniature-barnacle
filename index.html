@@ -125,6 +125,14 @@
     .cart-summary div { display: flex; justify-content: space-between; gap: 12px; margin: 5px 0; }
     .cart-summary strong { font-size: 17px; }
     .cart-empty { padding: 24px 8px; text-align: center; color: var(--muted); }
+    .account-section-title { margin: 22px 0 10px; font-size: 16px; }
+    .order-card { padding: 12px; border: 1px solid var(--line); border-radius: 10px; }
+    .order-card + .order-card { margin-top: 8px; }
+    .order-head { display: flex; justify-content: space-between; gap: 8px; }
+    .order-status { color: #16804f; font-size: 12px; font-weight: 700; }
+    .order-progress { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 12px; }
+    .order-progress span { height: 5px; border-radius: 99px; background: var(--line); }
+    .order-progress span.active { background: var(--primary); }
     .nav-actions { display: flex; gap: 10px; align-items: center; }
     .icon-btn {
       width: 42px; height: 42px; border: 1px solid var(--line); border-radius: 11px;
@@ -518,6 +526,8 @@
               <div class="modal-body">
                 <div class="account-summary"><div><strong id="accountEmail">المستخدم</strong><small>إعلاناتي المنشورة</small></div><button class="outline-btn" id="logoutBtn">تسجيل الخروج</button></div>
                 <div id="myListings" class="my-listings"><p class="helper">جارٍ تحميل إعلاناتك...</p></div>
+                <h3 class="account-section-title">طلباتي</h3>
+                <div id="myOrders" class="my-listings"><p class="helper">جارٍ تحميل الطلبات...</p></div>
               </div>
               <div class="modal-backdrop" id="adminModal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
                 <div class="modal">
@@ -878,6 +888,21 @@
         <div class="listing-actions"><button class="mini-btn edit-listing">تعديل</button><button class="mini-btn mark-sold">تم البيع</button><button class="mini-btn danger delete-listing">حذف</button></div>
       </div>`).join('');
     }
+    async function loadMyOrders() {
+      const container = document.getElementById('myOrders');
+      const response = await fetch(`${localApi}/orders`);
+      const result = await response.json();
+      if (!response.ok) {
+        container.innerHTML = `<p class="helper">${escapeHtml(result.error || 'تعذر تحميل الطلبات')}</p>`;
+        return;
+      }
+      container.innerHTML = result.length ? result.map(order => `<div class="order-card">
+        <div class="order-head"><strong>طلب SH-${String(order.id).padStart(6, '0')}</strong><span class="order-status">${order.status === 'pending' ? 'تم الطلب' : escapeHtml(order.status)}</span></div>
+        <small>${new Date(order.created_at).toLocaleDateString('ar-JO')} · ${Number(order.total).toLocaleString('ar-JO')} د.أ</small>
+        <div class="order-progress" aria-label="حالة الطلب"><span class="active"></span><span></span><span></span><span></span></div>
+        <small>تم الطلب · قيد التجهيز · في الطريق · تم التسليم</small>
+      </div>`).join('') : '<p class="helper">لا توجد طلبات مرتبطة بحسابك بعد.</p>';
+    }
 
     function showFirebaseSetupMessage() {
       if (!firebaseReady) {
@@ -973,6 +998,7 @@
       document.getElementById('accountEmail').textContent = localUser.email;
       openModal('accountModal');
       loadMyListings();
+      loadMyOrders();
     });
     document.querySelector('.sell-btn').addEventListener('click', () => openModal('listingModal'));
     document.querySelectorAll('.close-modal').forEach(button => button.addEventListener('click', () => closeModal(button.dataset.close)));
@@ -1155,15 +1181,27 @@
       document.getElementById('checkoutBtn').style.display = 'none';
       document.getElementById('checkoutName').focus();
     });
-    document.getElementById('checkoutForm').addEventListener('submit', event => {
+    document.getElementById('checkoutForm').addEventListener('submit', async event => {
       event.preventDefault();
-      const orderNumber = `SH-${Date.now().toString().slice(-6)}`;
+      const message = document.getElementById('checkoutMessage');
+      const response = await fetch(`${localApi}/orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        customerName: document.getElementById('checkoutName').value.trim(),
+        phone: document.getElementById('checkoutPhone').value.trim(),
+        address: document.getElementById('checkoutAddress').value.trim(),
+        items: cartItems.map(item => ({ id: item.id, title: item.title, price: item.price, quantity: item.quantity }))
+      }) });
+      const result = await response.json();
+      if (!response.ok) {
+        message.textContent = result.error || 'تعذر تسجيل الطلب. حاول مجددًا.';
+        message.style.color = '#b42318';
+        return;
+      }
       cartItems = [];
       saveCart();
       renderCart();
       document.getElementById('checkoutForm').reset();
-      document.getElementById('checkoutMessage').textContent = `تم استلام طلبك بنجاح. رقم الطلب ${orderNumber}. سنتواصل معك لتأكيد التوصيل.`;
-      document.getElementById('checkoutMessage').style.color = '#16804f';
+      message.textContent = `تم استلام طلبك بنجاح. رقم الطلب ${result.number}. سنتواصل معك لتأكيد التوصيل.`;
+      message.style.color = '#16804f';
     });
     document.getElementById('messageSeller').addEventListener('click', async () => {
       if (!localUser && !firebaseAuth) {
