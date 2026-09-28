@@ -355,6 +355,7 @@
           <div class="form-field"><label for="authEmail">البريد الإلكتروني</label><input id="authEmail" type="email" required autocomplete="email" placeholder="example@email.com" /></div>
           <div class="form-field" style="margin-top:12px"><label for="authPassword">كلمة المرور (8 أحرف على الأقل)</label><input id="authPassword" type="password" required minlength="8" maxlength="128" autocomplete="current-password" placeholder="اكتب 8 أحرف أو أكثر" /></div>
           <button class="primary-btn form-submit">تسجيل الدخول</button>
+          <button class="outline-btn form-submit" type="button" id="googleBtn">المتابعة باستخدام Google</button>
           <button class="outline-btn form-submit" type="button" id="signupBtn">إنشاء حساب جديد</button>
           <p class="helper" id="authMessage">استخدم بريدًا إلكترونيًا صحيحًا وكلمة مرور من 8 أحرف على الأقل.</p>
         </form>
@@ -420,14 +421,13 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script>
-    // ضع إعدادات تطبيق Firebase Web هنا بعد إنشاء مشروعك.
     const FIREBASE_CONFIG = {
-      apiKey: '',
-      authDomain: '',
-      projectId: '',
-      storageBucket: '',
-      messagingSenderId: '',
-      appId: ''
+      apiKey: 'AIzaSyCKgJr981P09i3hiMyRTDgL_67_Q1R671Q',
+      authDomain: 'marketplace-91934.firebaseapp.com',
+      projectId: 'marketplace-91934',
+      storageBucket: 'marketplace-91934.firebasestorage.app',
+      messagingSenderId: '854394309158',
+      appId: '1:854394309158:web:39a55b02bca8344c62b4e7'
     };
     const firebaseReady = Boolean(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.appId);
     const localApi = '/api';
@@ -464,7 +464,7 @@
     }
 
     async function loadListings() {
-      if (!firestore) {
+      if (!firestore || firebaseReady) {
         try {
           const response = await fetch(`${localApi}/listings`);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -499,6 +499,25 @@
     async function signInWithFirebase(email, password) {
       if (!firebaseAuth) return null;
       const result = await firebaseAuth.signInWithEmailAndPassword(email, password);
+      return result.user;
+    }
+
+    async function syncFirebaseSession(user) {
+      if (!user) {
+        localUser = null;
+        updateAuthButton();
+        return null;
+      }
+      const idToken = await user.getIdToken();
+      const response = await fetch(`${localApi}/auth/firebase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'تعذر ربط حساب Google بالموقع');
+      localUser = result.user;
+      updateAuthButton();
       return result.user;
     }
 
@@ -540,11 +559,21 @@
     }
 
     async function loadLocalUser() {
-      if (firebaseReady) return;
       const response = await fetch(`${localApi}/auth/me`);
       const result = await response.json();
       localUser = result.user;
       updateAuthButton();
+    }
+
+    if (firebaseAuth) {
+      firebaseAuth.onAuthStateChanged(async user => {
+        if (!user) return;
+        try {
+          await syncFirebaseSession(user);
+        } catch (error) {
+          console.error('تعذر مزامنة جلسة Google:', error.message);
+        }
+      });
     }
 
     function updateAuthButton() {
@@ -619,7 +648,7 @@
     function openModal(id) { document.getElementById(id).classList.add('open'); }
     function closeModal(id) { document.getElementById(id).classList.remove('open'); }
     document.getElementById('loginBtn').addEventListener('click', async () => {
-      if (!localUser || firebaseReady) return openModal('authModal');
+      if (!localUser) return openModal('authModal');
       document.getElementById('accountEmail').textContent = localUser.email;
       openModal('accountModal');
       loadMyListings();
@@ -645,11 +674,7 @@
         return;
       }
       try {
-        if (firebaseAuth) {
-          await signInWithFirebase(email, password);
-        } else {
-          await localAuthRequest('login', email, password);
-        }
+        await localAuthRequest('login', email, password);
       } catch (error) {
         document.getElementById('authMessage').textContent = `تعذر تسجيل الدخول: ${error.message}`;
         document.getElementById('authMessage').style.color = '#b42318';
@@ -674,8 +699,7 @@
         return;
       }
       try {
-        if (firebaseAuth) await firebaseAuth.createUserWithEmailAndPassword(email, password);
-        else await localAuthRequest('register', email, password);
+        await localAuthRequest('register', email, password);
         message.textContent = 'تم إنشاء الحساب بنجاح. يمكنك الآن نشر إعلاناتك.';
         message.style.color = '#16804f';
         setTimeout(() => closeModal('authModal'), 900);
@@ -684,12 +708,32 @@
         message.style.color = '#b42318';
       }
     });
+    document.getElementById('googleBtn').addEventListener('click', async () => {
+      const message = document.getElementById('authMessage');
+      if (!firebaseAuth) {
+        message.textContent = 'تسجيل Google غير متاح حاليًا. حاول تحديث الصفحة.';
+        message.style.color = '#b42318';
+        return;
+      }
+      try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const result = await firebaseAuth.signInWithPopup(provider);
+        await syncFirebaseSession(result.user);
+        message.textContent = 'تم تسجيل الدخول باستخدام Google بنجاح.';
+        message.style.color = '#16804f';
+        setTimeout(() => closeModal('authModal'), 900);
+      } catch (error) {
+        message.textContent = `تعذر تسجيل الدخول باستخدام Google: ${error.message}`;
+        message.style.color = '#b42318';
+      }
+    });
     document.getElementById('listingForm').addEventListener('submit', async event => {
       event.preventDefault();
       const name = document.getElementById('listingName').value.trim();
       const price = Number(document.getElementById('listingPrice').value);
       const city = document.getElementById('listingCity').value;
-      if (firebaseReady) {
+      if (false && firebaseReady) {
         const user = await getFirebaseUser();
         if (!user) {
           closeModal('listingModal');
@@ -737,7 +781,6 @@
           return;
         }
       }
-      if (firebaseReady) addListingCard({ title: name, price, city, emoji: '📦' });
       document.getElementById('listingForm').reset();
       closeModal('listingModal');
       filterProducts();
@@ -814,6 +857,7 @@
     });
     document.getElementById('logoutBtn').addEventListener('click', async () => {
       await fetch(`${localApi}/auth/logout`, { method: 'POST' });
+      if (firebaseAuth?.currentUser) await firebaseAuth.signOut();
       localUser = null;
       updateAuthButton();
       closeModal('accountModal');
